@@ -106,8 +106,15 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
           ),
           child: SafeArea(
             child: Padding(
-              padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                8,
+                16,
+                8,
+              ), // Reduced bottom padding from 12 to 8
               child: Column(
+                mainAxisSize:
+                    MainAxisSize.min, // Use min size to prevent overflow
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -116,8 +123,8 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
                         children: [
                           // User avatar
                           Container(
-                            height: 42,
-                            width: 42,
+                            height: 36, // Reduced from 42 to 36
+                            width: 36, // Reduced from 42 to 36
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: theme.colorScheme.primary.withOpacity(0.1),
@@ -131,16 +138,18 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
                             child: Icon(
                               Icons.person_outline_rounded,
                               color: theme.colorScheme.primary,
+                              size: 20, // Reduced icon size
                             ),
                           ),
-                          SizedBox(width: 12),
+                          SizedBox(width: 8), // Reduced from 12 to 8
                           // Title and welcome text
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'Welcome back',
-                                style: theme.textTheme.bodyMedium?.copyWith(
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  // Changed from bodyMedium to bodySmall
                                   color:
                                       isDarkMode
                                           ? AppTheme.darkTextSecondary
@@ -149,7 +158,8 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
                               ),
                               Text(
                                 widget.title,
-                                style: theme.textTheme.titleLarge?.copyWith(
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  // Changed from titleLarge to titleMedium
                                   fontWeight: FontWeight.bold,
                                   color:
                                       isDarkMode
@@ -231,9 +241,6 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 16),
-                  // Current status row
-                  _buildStatusRow(isDarkMode, theme),
                 ],
               ),
             ),
@@ -254,6 +261,8 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
         child: SafeArea(
           top:
               false, // Since we're handling the top padding with the custom app bar
+          bottom:
+              false, // Set bottom to false so we can handle padding ourselves
           child: _buildCurrentScreen(),
         ),
       ),
@@ -267,29 +276,38 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
                 child: const Icon(Icons.add),
               )
               : null,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: isDarkMode ? AppTheme.darkCardColor : AppTheme.lightCardColor,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: Offset(0, -5),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color:
+                  isDarkMode ? AppTheme.darkCardColor : AppTheme.lightCardColor,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: Offset(0, -5),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0), // Reduced vertical padding
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavBarItem(0, Icons.home_outlined, 'Home'),
-              _buildNavBarItem(1, Icons.insert_chart_outlined, 'Analytics'),
-              _buildNavBarItem(2, Icons.devices_outlined, 'Devices'),
-              _buildNavBarItem(3, Icons.settings_outlined, 'Settings'),
-            ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 6.0,
+              ), // Reduced vertical padding
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavBarItem(0, Icons.home_outlined, 'Home'),
+                  _buildNavBarItem(1, Icons.insert_chart_outlined, 'Analytics'),
+                  _buildNavBarItem(2, Icons.devices_outlined, 'Devices'),
+                  _buildNavBarItem(3, Icons.settings_outlined, 'Settings'),
+                ],
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -303,7 +321,10 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
       onTap: () => _onBottomNavTapped(index),
       child: AnimatedContainer(
         duration: AppTheme.shortAnimationDuration,
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6), // Reduced vertical padding
+        padding: EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 6,
+        ), // Reduced vertical padding
         decoration:
             isSelected
                 ? BoxDecoration(
@@ -346,9 +367,13 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
 
   Widget _buildHomeScreen() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(14.0),
+      padding: const EdgeInsets.fromLTRB(
+        14.0,
+        14.0,
+        14.0,
+        70.0,
+      ), // Added bottom padding for navigation bar
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           // Status overview
           StatusCard(
@@ -357,25 +382,21 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
             humidity: '${_sensors[1].value}${_sensors[1].unit}',
           ),
           const SizedBox(height: 16),
-
           // Room controls
           _sectionHeader(context, 'Rooms', Icons.meeting_room),
           const SizedBox(height: 12),
           _buildRoomControls(),
           const SizedBox(height: 16),
-
           // Smart devices
           _sectionHeader(context, 'Smart Devices', Icons.devices),
           const SizedBox(height: 12),
           _buildSmartDeviceGrid(),
           const SizedBox(height: 16),
-
           // Doors and Garage Doors
           _sectionHeader(context, 'Doors & Garage', Icons.door_front_door),
           const SizedBox(height: 12),
           _buildDoorControls(),
           const SizedBox(height: 16),
-
           // Sensors
           _sectionHeader(context, 'Sensors', Icons.sensors),
           const SizedBox(height: 12),
@@ -389,7 +410,12 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
 
   Widget _buildDevicesScreen() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.fromLTRB(
+        16.0,
+        16.0,
+        16.0,
+        70.0,
+      ), // Added bottom padding for navigation bar
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -882,7 +908,10 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
   }) {
     return Container(
       width: 110,
-      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 10), // Reduced vertical padding
+      padding: EdgeInsets.symmetric(
+        vertical: 8,
+        horizontal: 10,
+      ), // Reduced vertical padding
       decoration: BoxDecoration(
         color: isDarkMode ? AppTheme.darkCardColor : AppTheme.lightCardColor,
         borderRadius: BorderRadius.circular(12),
@@ -897,7 +926,11 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
       child: Column(
         mainAxisSize: MainAxisSize.min, // Add this to ensure minimal height
         children: [
-          Icon(icon, color: theme.colorScheme.primary, size: 22), // Reduced size from 24 to 22
+          Icon(
+            icon,
+            color: theme.colorScheme.primary,
+            size: 22,
+          ), // Reduced size from 24 to 22
           SizedBox(height: 4), // Reduced from 6 to 4
           Text(
             label,
