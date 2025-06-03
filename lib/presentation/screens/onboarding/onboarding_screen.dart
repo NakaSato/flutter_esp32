@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
-import '../auth/biometric_login_screen.dart';
+import '../auth/pin_login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -71,8 +71,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder:
-            (context, animation, secondaryAnimation) =>
-                const BiometricLoginScreen(),
+            (context, animation, secondaryAnimation) => const PinLoginScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           const begin = 0.0;
           const end = 1.0;
@@ -94,9 +93,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     return Padding(
       padding: const EdgeInsets.all(AppTheme.spacing_lg),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+      // Use SingleChildScrollView to prevent overflow
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min, // Use minimum space needed
+          children: [
           // Image container with animation
           TweenAnimationBuilder(
             tween: Tween<double>(begin: 0.0, end: 1.0),
@@ -178,6 +180,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 

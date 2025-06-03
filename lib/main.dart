@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/constants.dart';
 import 'presentation/screens/onboarding/onboarding_screen.dart';
-import 'presentation/screens/auth/biometric_login_screen.dart';
+import 'presentation/screens/auth/pin_login_screen.dart';
 import 'presentation/screens/dashboard/smart_home_dashboard.dart';
 import 'presentation/screens/settings/settings_screen.dart';
 
@@ -50,7 +50,7 @@ class MyApp extends StatelessWidget {
             page = const OnboardingScreen();
             break;
           case '/login':
-            page = const BiometricLoginScreen();
+            page = const PinLoginScreen();
             break;
           case '/dashboard':
             page = const SmartHomeDashboard(title: AppConstants.appName);

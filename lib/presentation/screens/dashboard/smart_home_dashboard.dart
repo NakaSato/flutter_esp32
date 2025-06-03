@@ -4,7 +4,7 @@ import '../../../data/models/room.dart';
 import '../../../data/models/sensor.dart';
 import '../../../data/repositories/home_repository.dart';
 import '../../../data/services/device_service.dart'; // Add new import
-import '../../widgets/door_card.dart' as door_widget;
+
 import '../../widgets/room_card.dart';
 import '../../widgets/sensor_card.dart';
 import '../../widgets/status_card.dart';
@@ -382,21 +382,13 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
             humidity: '${_sensors[1].value}${_sensors[1].unit}',
           ),
           const SizedBox(height: 16),
-          // Room controls
-          _sectionHeader(context, 'Rooms', Icons.meeting_room),
+          // Device controls
+          _sectionHeader(context, 'Devices', Icons.meeting_room),
           const SizedBox(height: 12),
           _buildRoomControls(),
           const SizedBox(height: 16),
-          // Smart devices
-          _sectionHeader(context, 'Smart Devices', Icons.devices),
-          const SizedBox(height: 12),
-          _buildSmartDeviceGrid(),
-          const SizedBox(height: 16),
-          // Doors and Garage Doors
-          _sectionHeader(context, 'Doors & Garage', Icons.door_front_door),
-          const SizedBox(height: 12),
-          _buildDoorControls(),
-          const SizedBox(height: 16),
+
+
           // Sensors
           _sectionHeader(context, 'Sensors', Icons.sensors),
           const SizedBox(height: 12),
@@ -752,46 +744,7 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
     );
   }
 
-  Widget _buildSmartDeviceGrid() {
-    // Get some example devices - you would normally get these from a service
-    final List<Device> devices =
-        _deviceService.getAllDevices().take(4).toList();
 
-    return GridView.builder(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 0.64,
-      ),
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: devices.length,
-      itemBuilder: (context, index) {
-        final device = devices[index];
-        final isOn = _deviceService.isDeviceOn(device.id);
-
-        return SmartDeviceCard(
-          device: device,
-          isOn: isOn,
-          onToggle: (value) {
-            setState(() {
-              _deviceService.toggleDevice(device.id, value);
-            });
-          },
-          onTap: () => _navigateToDeviceDetail(device),
-          value: _deviceValues[device.id] ?? 0.0,
-          onValueChanged: (value) {
-            setState(() {
-              _deviceValues[device.id] = value;
-            });
-          },
-          valueLabel:
-              device.type == DeviceType.light ? 'Brightness' : 'Intensity',
-        );
-      },
-    );
-  }
 
   Widget _buildAddRoomCard() {
     return NeumorphicCard(
@@ -818,36 +771,7 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
     );
   }
 
-  Widget _buildDoorControls() {
-    final doors = _deviceService.getAllDoors();
 
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: doors.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 16),
-      itemBuilder: (context, index) {
-        final door = doors[index];
-        return door_widget.DoorCard(
-          device: door_widget.Device(
-            name: door.name,
-            type: door_widget.DeviceType.values.firstWhere(
-              (type) =>
-                  type.toString() ==
-                  'DeviceType.${door.type.toString().split('.').last}',
-              orElse: () => door_widget.DeviceType.door,
-            ),
-            value: _deviceService.getDoorOpenPercentage(door.id),
-          ),
-          onPositionChanged: (percentage) {
-            setState(() {
-              _deviceService.setDoorOpenPercentage(door.id, percentage);
-            });
-          },
-        );
-      },
-    );
-  }
 
   Widget _buildSensors() {
     return GridView.builder(
@@ -863,101 +787,6 @@ class _SmartHomeDashboardState extends State<SmartHomeDashboard> {
       itemBuilder: (context, index) {
         return SensorCard(sensor: _sensors[index]);
       },
-    );
-  }
-
-  Widget _buildStatusRow(bool isDarkMode, ThemeData theme) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _buildStatusCard(
-            icon: Icons.devices,
-            label: 'Active Devices',
-            value: '${_deviceService.getActiveDeviceCount()}',
-            isDarkMode: isDarkMode,
-            theme: theme,
-          ),
-          const SizedBox(width: 8),
-          _buildStatusCard(
-            icon: Icons.thermostat,
-            label: 'Temperature',
-            value: '${_sensors[0].value}${_sensors[0].unit}',
-            isDarkMode: isDarkMode,
-            theme: theme,
-          ),
-          const SizedBox(width: 8),
-          _buildStatusCard(
-            icon: Icons.water_drop,
-            label: 'Humidity',
-            value: '${_sensors[1].value}${_sensors[1].unit}',
-            isDarkMode: isDarkMode,
-            theme: theme,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusCard({
-    required IconData icon,
-    required String label,
-    required String value,
-    required bool isDarkMode,
-    required ThemeData theme,
-  }) {
-    return Container(
-      width: 110,
-      padding: EdgeInsets.symmetric(
-        vertical: 8,
-        horizontal: 10,
-      ), // Reduced vertical padding
-      decoration: BoxDecoration(
-        color: isDarkMode ? AppTheme.darkCardColor : AppTheme.lightCardColor,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min, // Add this to ensure minimal height
-        children: [
-          Icon(
-            icon,
-            color: theme.colorScheme.primary,
-            size: 22,
-          ), // Reduced size from 24 to 22
-          SizedBox(height: 4), // Reduced from 6 to 4
-          Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color:
-                  isDarkMode
-                      ? AppTheme.darkTextSecondary
-                      : AppTheme.lightTextSecondary,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          SizedBox(height: 2), // Reduced from 4 to 2
-          Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color:
-                  isDarkMode
-                      ? AppTheme.darkTextPrimary
-                      : AppTheme.lightTextPrimary,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
     );
   }
 }

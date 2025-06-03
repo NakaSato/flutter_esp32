@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/theme/app_theme.dart';
 
 class NeumorphicContainer extends StatefulWidget {
@@ -306,13 +307,14 @@ class _NeumorphicButtonState extends State<NeumorphicButton> {
   }
 }
 
-class NeumorphicSwitch extends StatelessWidget {
+class NeumorphicSwitch extends StatefulWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
   final double width;
   final double height;
   final Color? activeColor;
   final Color? inactiveColor;
+  final bool showLabels;
 
   const NeumorphicSwitch({
     super.key,
@@ -322,68 +324,336 @@ class NeumorphicSwitch extends StatelessWidget {
     this.height = 30,
     this.activeColor,
     this.inactiveColor,
+    this.showLabels = true,
   });
 
   @override
+  State<NeumorphicSwitch> createState() => _NeumorphicSwitchState();
+}
+
+class _NeumorphicSwitchState extends State<NeumorphicSwitch> with SingleTickerProviderStateMixin {
+  bool _isPressed = false;
+  late AnimationController _rippleController;
+  late Animation<double> _rippleAnimation;
+  late AnimationController _hoverController;
+  late Animation<double> _hoverAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _rippleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _rippleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _rippleController,
+        curve: Curves.easeOutQuart,
+      ),
+    );
+    
+    // Add hover animation controller
+    _hoverController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _hoverAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _hoverController,
+        curve: Curves.easeInOut,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    // Make sure animations are properly stopped before disposing
+    _rippleController.stop();
+    _hoverController.stop();
+    
+    // Dispose controllers
+    _rippleController.dispose();
+    _hoverController.dispose();
+    
+    super.dispose();
+  }
+
+  void _triggerRippleEffect() {
+    if (mounted) {
+      _rippleController.reset();
+      _rippleController.forward();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Safety check to prevent accessing context after widget is disposed
+    if (!mounted) return Container(); // Return an empty container if not mounted
+    
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final theme = Theme.of(context);
-    final activeColor = this.activeColor ?? theme.colorScheme.primary;
+    final activeColor = widget.activeColor ?? theme.colorScheme.primary;
     final inactiveColor =
-        this.inactiveColor ??
+        widget.inactiveColor ??
         (isDarkMode ? AppTheme.darkCardColor : AppTheme.lightCardColor);
+    
+    // Calculate text color based on background for better contrast
+    final activeTextColor = _contrastColor(activeColor);
+    final inactiveTextColor = isDarkMode ? Colors.white70 : Colors.black54;
 
-    return GestureDetector(
-      onTap: () => onChanged(!value),
-      child: AnimatedContainer(
-        duration: AppTheme.mediumAnimationDuration,
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(height / 2),
-          color: value ? activeColor.withOpacity(0.2) : inactiveColor,
-          border: Border.all(
-            color:
-                value
-                    ? activeColor
-                    : isDarkMode
-                    ? Colors.grey.shade700
-                    : Colors.grey.shade300,
-            width: 1.5,
-          ),
-        ),
-        child: Stack(
-          children: [
-            AnimatedPositioned(
-              duration: AppTheme.mediumAnimationDuration,
-              curve: Curves.easeInOut,
-              left: value ? width - height + 2 : 2,
-              top: 2,
-              child: Container(
-                width: height - 4,
-                height: height - 4,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color:
-                      value
-                          ? activeColor
-                          : isDarkMode
-                          ? AppTheme.darkTextSecondary
-                          : AppTheme.lightTextSecondary,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 4,
-                      spreadRadius: 1,
+    return MouseRegion(
+      onEnter: (_) {
+        if (mounted) {
+          _hoverController.forward();
+        }
+      },
+      onExit: (_) {
+        if (mounted) {
+          _hoverController.reverse();
+        }
+      },
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTapDown: (_) {
+          if (mounted) {
+            setState(() => _isPressed = true);
+            _triggerRippleEffect();
+            HapticFeedback.lightImpact(); // Add haptic feedback
+          }
+        },
+        onTapUp: (_) {
+          if (mounted) {
+            setState(() => _isPressed = false);
+          }
+        },
+        onTapCancel: () {
+          if (mounted) {
+            setState(() => _isPressed = false);
+          }
+        },
+        onTap: () {
+          if (mounted) {
+            widget.onChanged(!widget.value);
+            HapticFeedback.mediumImpact(); // Add stronger haptic feedback on actual toggle
+          }
+        },
+        child: AnimatedBuilder(
+          animation: _hoverAnimation,
+          builder: (context, child) {
+            // Safety check to prevent building with deactivated widgets
+            if (!mounted) return Container();
+            // Calculate hover-affected colors
+            final hoverActiveColor = Color.lerp(
+              activeColor, 
+              activeColor.withOpacity(0.8), 
+              _hoverAnimation.value
+            )!;
+            
+            final hoverInactiveColor = Color.lerp(
+              inactiveColor, 
+              Theme.of(context).colorScheme.surfaceVariant, 
+              _hoverAnimation.value
+            )!;
+            
+            // Calculate glow intensity based on hover
+            final glowSpread = widget.value ? 
+                1.0 + (_hoverAnimation.value * 1.5) : 
+                0.0 + (_hoverAnimation.value * 0.8);
+                
+            final glowBlur = 6.0 + (_hoverAnimation.value * 4.0);
+            
+            return Container(
+              width: widget.width,
+              height: widget.height,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(widget.height / 2),
+                gradient: widget.value
+                    ? LinearGradient(
+                        colors: [
+                          hoverActiveColor.withOpacity(0.7),
+                          hoverActiveColor,
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
+                color: widget.value ? null : hoverInactiveColor,
+                boxShadow: [
+                  BoxShadow(
+                    color: widget.value
+                        ? activeColor.withOpacity(0.3 + (_hoverAnimation.value * 0.2))
+                        : Colors.black.withOpacity(0.1 + (_hoverAnimation.value * 0.1)),
+                    blurRadius: glowBlur,
+                    spreadRadius: glowSpread,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: child,
+            );
+          },
+          child: Stack(
+            children: [
+              // Ripple effect
+              AnimatedBuilder(
+                animation: _rippleAnimation,
+                builder: (context, child) {
+                  return Positioned.fill(
+                    child: Opacity(
+                      opacity: 1.0 - _rippleAnimation.value,
+                      child: Transform.scale(
+                        scale: 0.8 + (_rippleAnimation.value * 0.3),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(widget.height / 2),
+                            color: widget.value
+                                ? activeColor.withOpacity(0.2)
+                                : Colors.grey.withOpacity(0.2),
+                          ),
+                        ),
+                      ),
                     ),
-                  ],
+                  );
+                },
+              ),
+              
+              // ON label
+              if (widget.showLabels)
+                Positioned(
+                  left: 8,
+                  top: 0,
+                  bottom: 0,
+                  child: AnimatedOpacity(
+                    opacity: widget.value ? 1.0 : 0.0,
+                    duration: AppTheme.shortAnimationDuration,
+                    child: Center(
+                      child: Text(
+                        'ON',
+                        style: TextStyle(
+                          color: activeTextColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              
+              // OFF label
+              if (widget.showLabels)
+                Positioned(
+                  right: 8,
+                  top: 0,
+                  bottom: 0,
+                  child: AnimatedOpacity(
+                    opacity: widget.value ? 0.0 : 1.0,
+                    duration: AppTheme.shortAnimationDuration,
+                    child: Center(
+                      child: Text(
+                        'OFF',
+                        style: TextStyle(
+                          color: inactiveTextColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              
+              // Thumb/knob
+              AnimatedPositioned(
+                duration: AppTheme.mediumAnimationDuration,
+                curve: Curves.easeOutBack, // Improved animation curve
+                left: widget.value ? widget.width - widget.height + 2 : 2,
+                top: 2,
+                child: AnimatedBuilder(
+                  animation: _hoverAnimation,
+                  builder: (context, child) {
+                    // Safety check to prevent building with deactivated widgets
+                    if (!mounted) return Container();
+                    // Calculate hover scale with animation
+                    final hoverScale = _isPressed ? 0.9 : (1.0 + (_hoverAnimation.value * 0.08));
+                    
+                    // Calculate hover glow color
+                    final hoverGlowColor = widget.value
+                        ? activeColor.withOpacity(_hoverAnimation.value * 0.4)
+                        : Colors.blue.withOpacity(_hoverAnimation.value * 0.2);
+                    
+                    return Transform.scale(
+                      scale: hoverScale,
+                      child: Container(
+                        width: widget.height - 4,
+                        height: widget.height - 4,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          gradient: RadialGradient(
+                            colors: [
+                              Colors.white,
+                              widget.value ? 
+                                  Color.lerp(Colors.white.withOpacity(0.9), activeColor.withOpacity(0.1), _hoverAnimation.value)! : 
+                                  Colors.white.withOpacity(0.8),
+                            ],
+                            center: Alignment(0.2, 0.2),
+                            focal: Alignment(0.2, 0.2),
+                            focalRadius: 0.1,
+                          ),
+                          boxShadow: [
+                            // Main shadow
+                            BoxShadow(
+                              color: Colors.black.withOpacity(_isPressed ? 0.1 : 0.15),
+                              blurRadius: _isPressed ? 2 : 4 + (_hoverAnimation.value * 2),
+                              spreadRadius: _isPressed ? 0.2 : 0.5 + (_hoverAnimation.value * 0.5),
+                              offset: _isPressed ? Offset(0, 1) : Offset(0, 2),
+                            ),
+                            // Subtle inner shadow
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 1,
+                              spreadRadius: 0,
+                              offset: Offset(0, 1),
+                            ),
+                            // Hover glow effect
+                            if (_hoverAnimation.value > 0) BoxShadow(
+                              color: hoverGlowColor,
+                              blurRadius: 8,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: widget.value
+                            ? Center(
+                                child: Icon(
+                                  Icons.check,
+                                  size: 12 + (_hoverAnimation.value * 2),
+                                  color: Color.lerp(activeColor, activeColor.withOpacity(0.8), _hoverAnimation.value),
+                                ),
+                              )
+                            : _hoverAnimation.value > 0.3 ? Center(
+                                child: Icon(
+                                  Icons.close,
+                                  size: (_hoverAnimation.value - 0.3) * 10,
+                                  color: Colors.black26,
+                                ),
+                              ) : null,
+                      ),
+                    );
+                  },
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
+  }
+  
+  // Helper method to determine contrasting text color
+  Color _contrastColor(Color backgroundColor) {
+    // Calculate luminance (brightness) of the background color
+    // If it's dark, use white text; if it's light, use dark text
+    return backgroundColor.computeLuminance() > 0.5 ? Colors.black : Colors.white;
   }
 }
 

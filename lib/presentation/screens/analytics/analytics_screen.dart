@@ -427,7 +427,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                       : AppTheme.lightTextPrimary,
             ),
           ),
-          if (stat['change'].isNotEmpty)
+          if (stat['change'] != null && stat['change'].toString().isNotEmpty)
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
